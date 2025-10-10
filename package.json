@@ -1,0 +1,38 @@
+{
+  "name": "cubad",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev --turbopack -p 9090",
+    "build": "next build",
+    "start": "next start -p 9090",
+    "lint": "next lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@azure/arm-cosmosdb": "^16.3.0",
+    "@azure/cosmos": "^4.5.1",
+    "@azure/identity": "^4.13.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/postcss": "^4.1.14",
+    "@tanstack/react-query": "^5.90.2",
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "cmdk": "^1.1.1",
+    "idb": "^8.0.3",
+    "next": "^15.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14"
+  }
+}
