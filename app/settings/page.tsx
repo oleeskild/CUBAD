@@ -9,6 +9,7 @@ import {
   deleteDisplayFilter,
   type DisplayFilter,
 } from '@/lib/storage/display-filters'
+import AISettingsSection from '@/components/AISettings'
 import Link from 'next/link'
 
 export default function SettingsPage() {
@@ -466,6 +467,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* AI Settings Section */}
+        <AISettingsSection />
       </div>
     </div>
   )

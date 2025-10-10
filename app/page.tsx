@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AccountList from '@/components/AccountList'
 import DatabaseList from '@/components/DatabaseList'
@@ -12,12 +12,13 @@ import ResultsView from '@/components/ResultsView'
 import ResizablePanels from '@/components/ResizablePanels'
 import TabBar from '@/components/TabBar'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar'
+import AIAssistant from '@/components/AIAssistant'
 import { useNavigationStore } from '@/store/navigation'
 import { useTabStore } from '@/store/tabs'
 import { addToQueryHistory } from '@/lib/storage/query-history'
 import { usePanelNavigation } from '@/hooks/usePanelNavigation'
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams()
   const { selectedAccount, selectedAccountResourceGroup, selectedDatabase, selectedContainer, initFromUrl } = useNavigationStore()
   const { tabs, getActiveTab, updateTabResults, updateTab, addTab, activeTabId } = useTabStore()
@@ -27,6 +28,7 @@ export default function Home() {
   const [accountsCollapsed, setAccountsCollapsed] = useState(false)
   const [databasesCollapsed, setDatabasesCollapsed] = useState(false)
   const [containersCollapsed, setContainersCollapsed] = useState(false)
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
 
   // Initialize navigation state from URL params on mount
   useEffect(() => {
@@ -144,6 +146,24 @@ export default function Home() {
               {' · '}
               <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700">↵</kbd> select
             </div>
+            {hasActiveTabs && (
+              <button
+                onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
+                className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 ${
+                  aiAssistantOpen ? 'text-blue-600 dark:text-blue-400' : ''
+                }`}
+                title="AI Assistant"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </button>
+            )}
             <a
               href="/settings"
               className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -267,22 +287,48 @@ export default function Home() {
           )}
 
           {hasActiveTabs && (
-            <div className="flex-1 min-h-0">
-              <ResizablePanels
-                topPanel={<QueryEditor onExecute={executeQuery} executing={executing} />}
-                bottomPanel={
-                  <ResultsView
-                    results={activeTab?.results || null}
-                    metadata={activeTab?.metadata || null}
-                    error={activeTab?.error || null}
+            <div className="flex-1 min-h-0 flex flex-row">
+              <div className="flex-1 min-w-0">
+                <ResizablePanels
+                  topPanel={<QueryEditor onExecute={executeQuery} executing={executing} />}
+                  bottomPanel={
+                    <ResultsView
+                      results={activeTab?.results || null}
+                      metadata={activeTab?.metadata || null}
+                      error={activeTab?.error || null}
+                    />
+                  }
+                  defaultTopHeight={50}
+                />
+              </div>
+              {aiAssistantOpen && activeTab && (
+                <div className="w-96 flex-shrink-0">
+                  <AIAssistant
+                    context={{
+                      containerName: activeTab.containerName || selectedContainer || '',
+                      databaseName: activeTab.databaseName || selectedDatabase || '',
+                      accountName: activeTab.accountName || selectedAccount || '',
+                    }}
+                    onInsertQuery={(query) => {
+                      if (activeTab) {
+                        updateTab(activeTab.id, { query })
+                      }
+                    }}
                   />
-                }
-                defaultTopHeight={50}
-              />
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }
