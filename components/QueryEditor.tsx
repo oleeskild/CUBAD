@@ -53,6 +53,12 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
       }
     )
 
+    // Set cursor position to line 2 (the blank line) if this is the default query
+    const defaultQuery = 'SELECT * FROM c\n\nOFFSET 0 LIMIT 100'
+    if (query === defaultQuery) {
+      editor.setPosition({ lineNumber: 2, column: 1 })
+    }
+
     // Focus the editor initially
     editor.focus()
   }
@@ -145,7 +151,16 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => handleQueryChange('SELECT * FROM c OFFSET 0 LIMIT 100')}
+            onClick={() => {
+              handleQueryChange('SELECT * FROM c\n\nOFFSET 0 LIMIT 100')
+              // Set cursor position after clearing
+              setTimeout(() => {
+                if (editorRef.current) {
+                  editorRef.current.setPosition({ lineNumber: 2, column: 1 })
+                  editorRef.current.focus()
+                }
+              }, 50)
+            }}
             className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           >
             Clear

@@ -4,23 +4,44 @@ import { useEffect, useState } from 'react'
 import { CosmosAccount } from '@/types/cosmos'
 import { useNavigationStore } from '@/store/navigation'
 import { useVimNavigation } from '@/hooks/useVimNavigation'
+import { getSearchIndex } from '@/lib/db/search-index'
 
 export default function AccountList() {
   const { selectedAccount, selectAccount } = useNavigationStore()
   const [accounts, setAccounts] = useState<CosmosAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter accounts based on search query
+  const filteredAccounts = accounts.filter((account) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      account.name.toLowerCase().includes(query) ||
+      account.location.toLowerCase().includes(query) ||
+      account.resourceGroup.toLowerCase().includes(query)
+    )
+  })
 
   const { isFocused } = useVimNavigation({
-    items: accounts,
+    items: filteredAccounts,
     onSelect: (account) => selectAccount(account.name, account.resourceGroup),
     getId: (account) => account.id,
-    enabled: !loading && !error && accounts.length > 0 && !selectedAccount, // Only when no account selected
+    enabled: !loading && !error && filteredAccounts.length > 0 && !selectedAccount, // Only when no account selected
   })
 
   useEffect(() => {
     async function fetchAccounts() {
       try {
+        // First, try to load from IndexedDB
+        const cachedData = await getSearchIndex()
+        if (cachedData.accounts && cachedData.accounts.length > 0) {
+          setAccounts(cachedData.accounts as CosmosAccount[])
+          setLoading(false)
+          return
+        }
+
+        // If no cached data, fetch from API
         const response = await fetch('/api/accounts')
         const data = await response.json()
 
@@ -68,7 +89,24 @@ export default function AccountList() {
 
   return (
     <div className="space-y-2">
-      {accounts.map((account) => {
+      {/* Search bar */}
+      <div className="sticky top-0 bg-white dark:bg-gray-950 pb-2 z-10">
+        <input
+          type="text"
+          placeholder="Search accounts..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        />
+      </div>
+
+      {filteredAccounts.length === 0 && searchQuery && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+          No accounts match &quot;{searchQuery}&quot;
+        </div>
+      )}
+
+      {filteredAccounts.map((account) => {
         const isSelected = selectedAccount === account.name
         const focused = isFocused(account)
         return (

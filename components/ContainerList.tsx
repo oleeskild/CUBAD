@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useNavigationStore } from '@/store/navigation'
 import { applyDisplayFilters } from '@/lib/storage/display-filters'
 import { useVimNavigation } from '@/hooks/useVimNavigation'
+import { getSearchIndex } from '@/lib/db/search-index'
 
 export default function ContainerList() {
   const {
@@ -18,12 +19,22 @@ export default function ContainerList() {
   >([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter containers based on search query
+  const filteredContainers = containers.filter((container) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      container.id.toLowerCase().includes(query) ||
+      (container.partitionKey && container.partitionKey.toLowerCase().includes(query))
+    )
+  })
 
   const { isFocused } = useVimNavigation({
-    items: containers,
+    items: filteredContainers,
     onSelect: (container) => selectContainer(container.id),
     getId: (container) => container.id,
-    enabled: !loading && !error && containers.length > 0 && !!selectedDatabase,
+    enabled: !loading && !error && filteredContainers.length > 0 && !!selectedDatabase,
   })
 
   useEffect(() => {
@@ -37,6 +48,22 @@ export default function ContainerList() {
       setError(null)
 
       try {
+        // First, try to load from IndexedDB
+        const cachedData = await getSearchIndex()
+        if (cachedData.containers && cachedData.containers.length > 0) {
+          // Filter containers for the selected account and database
+          const databaseContainers = cachedData.containers.filter(
+            (cont) => cont.accountName === selectedAccount && cont.databaseName === selectedDatabase
+          )
+
+          if (databaseContainers.length > 0) {
+            setContainers(databaseContainers)
+            setLoading(false)
+            return
+          }
+        }
+
+        // If no cached data, fetch from API
         const response = await fetch(
           `/api/containers?accountName=${selectedAccount}&resourceGroup=${selectedAccountResourceGroup}&databaseId=${selectedDatabase}`
         )
@@ -94,7 +121,24 @@ export default function ContainerList() {
 
   return (
     <div className="space-y-2">
-      {containers.map((container) => {
+      {/* Search bar */}
+      <div className="sticky top-0 bg-white dark:bg-gray-950 pb-2 z-10">
+        <input
+          type="text"
+          placeholder="Search containers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        />
+      </div>
+
+      {filteredContainers.length === 0 && searchQuery && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+          No containers match &quot;{searchQuery}&quot;
+        </div>
+      )}
+
+      {filteredContainers.map((container) => {
         const isSelected = selectedContainer === container.id
         const focused = isFocused(container)
         return (

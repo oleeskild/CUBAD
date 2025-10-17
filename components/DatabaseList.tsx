@@ -4,18 +4,26 @@ import { useEffect, useState } from 'react'
 import { useNavigationStore } from '@/store/navigation'
 import { applyDisplayFilters } from '@/lib/storage/display-filters'
 import { useVimNavigation } from '@/hooks/useVimNavigation'
+import { getSearchIndex } from '@/lib/db/search-index'
 
 export default function DatabaseList() {
   const { selectedAccount, selectedAccountResourceGroup, selectedDatabase, selectDatabase } = useNavigationStore()
   const [databases, setDatabases] = useState<Array<{ id: string }>>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter databases based on search query
+  const filteredDatabases = databases.filter((db) => {
+    const query = searchQuery.toLowerCase()
+    return db.id.toLowerCase().includes(query)
+  })
 
   const { isFocused } = useVimNavigation({
-    items: databases,
+    items: filteredDatabases,
     onSelect: (db) => selectDatabase(db.id),
     getId: (db) => db.id,
-    enabled: !loading && !error && databases.length > 0 && !!selectedAccount && !selectedDatabase, // Only when no database selected
+    enabled: !loading && !error && filteredDatabases.length > 0 && !!selectedAccount && !selectedDatabase, // Only when no database selected
   })
 
   useEffect(() => {
@@ -29,6 +37,27 @@ export default function DatabaseList() {
       setError(null)
 
       try {
+        // First, try to load from IndexedDB
+        const cachedData = await getSearchIndex()
+        if (cachedData.databases && cachedData.databases.length > 0) {
+          // Filter databases for the selected account
+          const accountDatabases = cachedData.databases.filter(
+            (db) => db.accountName === selectedAccount
+          )
+
+          if (accountDatabases.length > 0) {
+            setDatabases(accountDatabases)
+            setLoading(false)
+
+            // Auto-select if there's only one database and no database is currently selected
+            if (accountDatabases.length === 1 && !selectedDatabase) {
+              selectDatabase(accountDatabases[0].id)
+            }
+            return
+          }
+        }
+
+        // If no cached data, fetch from API
         const response = await fetch(
           `/api/databases?accountName=${selectedAccount}&resourceGroup=${selectedAccountResourceGroup}`
         )
@@ -39,6 +68,11 @@ export default function DatabaseList() {
         }
 
         setDatabases(data.databases)
+
+        // Auto-select if there's only one database and no database is currently selected
+        if (data.databases.length === 1 && !selectedDatabase) {
+          selectDatabase(data.databases[0].id)
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
@@ -86,7 +120,24 @@ export default function DatabaseList() {
 
   return (
     <div className="space-y-2">
-      {databases.map((db) => {
+      {/* Search bar */}
+      <div className="sticky top-0 bg-white dark:bg-gray-950 pb-2 z-10">
+        <input
+          type="text"
+          placeholder="Search databases..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        />
+      </div>
+
+      {filteredDatabases.length === 0 && searchQuery && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+          No databases match &quot;{searchQuery}&quot;
+        </div>
+      )}
+
+      {filteredDatabases.map((db) => {
         const isSelected = selectedDatabase === db.id
         const focused = isFocused(db)
         return (

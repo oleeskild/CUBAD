@@ -56,7 +56,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
       accountResourceGroup: context?.accountResourceGroup || null,
       databaseName: context?.databaseName || null,
       containerName: context?.containerName || null,
-      query: 'SELECT * FROM c OFFSET 0 LIMIT 100',
+      query: 'SELECT * FROM c\n\nOFFSET 0 LIMIT 100',
       results: null,
       metadata: null,
       error: null,
@@ -93,6 +93,26 @@ export const useTabStore = create<TabStore>((set, get) => ({
   },
 
   setActiveTab: (tabId) => {
+    const tab = get().tabs.find((t) => t.id === tabId)
+    if (tab) {
+      // Update navigation store to sync breadcrumbs with tab context
+      const { useNavigationStore } = require('./navigation')
+      const navigationStore = useNavigationStore.getState()
+
+      // Only update if the tab has context
+      if (tab.accountName && tab.accountResourceGroup) {
+        navigationStore.selectAccount(tab.accountName, tab.accountResourceGroup)
+
+        if (tab.databaseName) {
+          navigationStore.selectDatabase(tab.databaseName)
+
+          if (tab.containerName) {
+            navigationStore.selectContainer(tab.containerName)
+          }
+        }
+      }
+    }
+
     set({ activeTabId: tabId })
   },
 
