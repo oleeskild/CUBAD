@@ -41,6 +41,11 @@ npm install
 # Authenticate with Azure
 az login
 
+# (Optional) Set your subscription ID in .env.local
+# Copy the example file and add your subscription ID
+cp .env.local.example .env.local
+# Edit .env.local and set AZURE_SUBSCRIPTION_ID=your-subscription-id-here
+
 # Run the development server
 npm run dev
 ```
@@ -62,7 +67,7 @@ Instant search across all your accounts, databases, and containers.
 Query editor suggests document properties from your actual data - no more guessing field names.
 
 ### AI Query Assistant
-Describe what you want in plain English, get a ready-to-run SQL query. Optionally add a GDPR-safe document schema for better results.
+Describe what you want in plain English, get a ready-to-run SQL query. Optionally add a GDPR-safe (all values will be redacted, only structure and property names are kept) document schema for better results.
 
 ### Vim-style Navigation
 - `h`/`l` - Navigate between panels
