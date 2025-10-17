@@ -13,6 +13,7 @@ import ResizablePanels from '@/components/ResizablePanels'
 import TabBar from '@/components/TabBar'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar'
 import AIAssistant from '@/components/AIAssistant'
+import QueryHistory from '@/components/QueryHistory'
 import { useNavigationStore } from '@/store/navigation'
 import { useTabStore } from '@/store/tabs'
 import { addToQueryHistory } from '@/lib/storage/query-history'
@@ -32,6 +33,7 @@ function HomeContent() {
   const [databasesCollapsed, setDatabasesCollapsed] = useState(false)
   const [containersCollapsed, setContainersCollapsed] = useState(false)
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
+  const [queryHistoryOpen, setQueryHistoryOpen] = useState(false)
 
   // Check if search index is built
   useEffect(() => {
@@ -183,22 +185,40 @@ function HomeContent() {
               <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700">↵</kbd> select
             </div>
             {hasActiveTabs && (
-              <button
-                onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
-                className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 ${
-                  aiAssistantOpen ? 'text-blue-600 dark:text-blue-400' : ''
-                }`}
-                title="AI Assistant"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-              </button>
+              <>
+                <button
+                  onClick={() => setQueryHistoryOpen(!queryHistoryOpen)}
+                  className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 ${
+                    queryHistoryOpen ? 'text-blue-600 dark:text-blue-400' : ''
+                  }`}
+                  title="Query History"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setAiAssistantOpen(!aiAssistantOpen)}
+                  className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 ${
+                    aiAssistantOpen ? 'text-blue-600 dark:text-blue-400' : ''
+                  }`}
+                  title="AI Assistant"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                </button>
+              </>
             )}
             <a
               href="/settings"
@@ -422,6 +442,17 @@ function HomeContent() {
                   defaultTopHeight={50}
                 />
               </div>
+              {queryHistoryOpen && (
+                <div className="w-96 flex-shrink-0">
+                  <QueryHistory
+                    onSelectQuery={(query) => {
+                      if (activeTab) {
+                        updateTab(activeTab.id, { query })
+                      }
+                    }}
+                  />
+                </div>
+              )}
               {aiAssistantOpen && activeTab && (
                 <div className="w-96 flex-shrink-0">
                   <AIAssistant

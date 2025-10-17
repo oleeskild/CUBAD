@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import { useTabStore } from '@/store/tabs'
 import type { editor, languages } from 'monaco-editor'
+import { getEditorSettings, toggleVimMode } from '@/lib/storage/editor-settings'
 
 interface QueryEditorProps {
   onExecute: (query: string) => void
@@ -14,8 +15,10 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<any>(null)
   const completionProviderRef = useRef<any>(null)
+  const vimModeRef = useRef<any>(null)
   const { getActiveTab, updateTabQuery, activeTabId } = useTabStore()
   const [properties, setProperties] = useState<string[]>([])
+  const [vimEnabled, setVimEnabled] = useState(() => getEditorSettings().vimMode)
 
   const activeTab = getActiveTab()
   const query = activeTab?.query || ''
@@ -62,6 +65,70 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
       updateTabQuery(activeTab.id, value || '')
     }
   }
+
+  // Initialize Vim mode
+  function initVimMode(editor: editor.IStandaloneCodeEditor) {
+    if (vimModeRef.current) {
+      vimModeRef.current.dispose()
+    }
+
+    // Dynamically import monaco-vim
+    import('monaco-vim').then((module) => {
+      const { initVimMode: initVim } = module
+
+      // Create a status node for Vim mode indicator
+      const statusNode = document.createElement('div')
+      statusNode.style.position = 'fixed'
+      statusNode.style.bottom = '10px'
+      statusNode.style.right = '10px'
+      statusNode.style.padding = '4px 8px'
+      statusNode.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+      statusNode.style.color = 'white'
+      statusNode.style.fontSize = '12px'
+      statusNode.style.fontFamily = 'monospace'
+      statusNode.style.borderRadius = '4px'
+      statusNode.style.zIndex = '1000'
+      document.body.appendChild(statusNode)
+
+      vimModeRef.current = initVim(editor, statusNode)
+
+      // Store the status node so we can remove it later
+      vimModeRef.current.statusNode = statusNode
+    }).catch((err) => {
+      console.error('Failed to initialize Vim mode:', err)
+    })
+  }
+
+  // Toggle Vim mode
+  function handleToggleVim() {
+    const newVimMode = toggleVimMode()
+    setVimEnabled(newVimMode)
+
+    if (editorRef.current) {
+      if (newVimMode) {
+        initVimMode(editorRef.current)
+      } else if (vimModeRef.current) {
+        vimModeRef.current.dispose()
+        // Remove status node
+        if (vimModeRef.current.statusNode) {
+          document.body.removeChild(vimModeRef.current.statusNode)
+        }
+        vimModeRef.current = null
+      }
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (vimModeRef.current) {
+        vimModeRef.current.dispose()
+        if (vimModeRef.current.statusNode) {
+          document.body.removeChild(vimModeRef.current.statusNode)
+        }
+      }
+    }
+  }, [])
 
   // Register/update completion provider when properties change
   useEffect(() => {
@@ -155,6 +222,11 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
   function handleEditorDidMount(editor: editor.IStandaloneCodeEditor, monaco: any) {
     editorRef.current = editor
     monacoRef.current = monaco
+
+    // Initialize Vim mode if enabled
+    if (vimEnabled) {
+      initVimMode(editor)
+    }
 
     // Add Cmd/Ctrl + Enter command directly to Monaco
     editor.addCommand(
@@ -269,6 +341,18 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
         </div>
 
         <div className="flex items-center gap-2">
+          {/* THERE IS SOME ISSUE WITH GOING INTO INSERT MODE. DISABLED FOR NOW */}
+          {/* <button */}
+          {/*   onClick={handleToggleVim} */}
+          {/*   className={`px-2 py-1 text-xs rounded transition-colors ${ */}
+          {/*     vimEnabled */}
+          {/*       ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 font-semibold' */}
+          {/*       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100' */}
+          {/*   }`} */}
+          {/*   title={vimEnabled ? 'Vim mode enabled' : 'Vim mode disabled'} */}
+          {/* > */}
+          {/*   VIM */}
+          {/* </button> */}
           <button
             onClick={() => {
               handleQueryChange('SELECT * FROM c\n\nOFFSET 0 LIMIT 100')

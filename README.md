@@ -17,7 +17,8 @@ Cubad is a developer-friendly UI for Azure Cosmos DB that doesn't suck. It provi
 - ⌨️ **Vim Navigation** - Keyboard shortcuts for everything (h/j/k/l)
 - 🎨 **Modern UI** - Clean interface with dark mode
 - 🔒 **Read-only Safe** - Uses read-only keys by default
-- 📊 **Query History** - Track and save your queries
+- 📊 **Query History** - Automatic tracking of all executed queries with performance metrics
+- 🔧 **Regex Filtering** - Filter display names in Settings using regex patterns
 
 ## Quick Start
 
