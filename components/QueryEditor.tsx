@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import { useTabStore } from '@/store/tabs'
-import type { editor } from 'monaco-editor'
+import type { editor, languages } from 'monaco-editor'
 
 interface QueryEditorProps {
   onExecute: (query: string) => void
@@ -12,10 +12,40 @@ interface QueryEditorProps {
 
 export default function QueryEditor({ onExecute, executing }: QueryEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<any>(null)
+  const completionProviderRef = useRef<any>(null)
   const { getActiveTab, updateTabQuery, activeTabId } = useTabStore()
+  const [properties, setProperties] = useState<string[]>([])
 
   const activeTab = getActiveTab()
   const query = activeTab?.query || ''
+
+  // Fetch sample document properties when tab context changes
+  useEffect(() => {
+    async function fetchProperties() {
+      if (activeTab?.accountName && activeTab?.databaseName && activeTab?.containerName) {
+        try {
+          console.log('Fetching properties for:', {
+            account: activeTab.accountName,
+            database: activeTab.databaseName,
+            container: activeTab.containerName
+          })
+          const response = await fetch(
+            `/api/sample-document?accountName=${activeTab.accountName}&resourceGroup=${activeTab.accountResourceGroup}&databaseId=${activeTab.databaseName}&containerId=${activeTab.containerName}`
+          )
+          const data = await response.json()
+          console.log('Received properties:', data)
+          if (data.success && data.properties) {
+            setProperties(data.properties)
+          }
+        } catch (error) {
+          console.error('Failed to fetch sample document properties:', error)
+        }
+      }
+    }
+
+    fetchProperties()
+  }, [activeTab?.accountName, activeTab?.databaseName, activeTab?.containerName])
 
   // Auto-focus editor when tab changes
   useEffect(() => {
@@ -33,9 +63,98 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
     }
   }
 
+  // Register/update completion provider when properties change
+  useEffect(() => {
+    if (!monacoRef.current) return
+
+    // Dispose previous provider if exists
+    if (completionProviderRef.current) {
+      completionProviderRef.current.dispose()
+    }
+
+    console.log('Registering completion provider with properties:', properties)
+
+    // Register new completion provider
+    completionProviderRef.current = monacoRef.current.languages.registerCompletionItemProvider('sql', {
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position)
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        }
+
+        // SQL keywords
+        const sqlKeywords = [
+          'SELECT', 'FROM', 'WHERE', 'ORDER BY', 'GROUP BY', 'HAVING',
+          'LIMIT', 'OFFSET', 'AS', 'JOIN', 'INNER', 'LEFT', 'RIGHT',
+          'ON', 'AND', 'OR', 'NOT', 'IN', 'BETWEEN', 'LIKE', 'IS',
+          'NULL', 'DESC', 'ASC', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+          'DISTINCT', 'TOP', 'VALUE'
+        ]
+
+        // Cosmos DB system properties
+        const systemProperties = ['_rid', '_self', '_etag', '_attachments', '_ts', 'id']
+
+        // Sort properties alphabetically
+        const sortedProperties = [...properties].sort((a, b) => a.localeCompare(b))
+
+        const suggestions = [
+          // Document properties from sample (alphabetically sorted, at the top)
+          ...sortedProperties.map((prop, index) => ({
+            label: prop,
+            kind: monacoRef.current.languages.CompletionItemKind.Field,
+            insertText: prop,
+            detail: 'Document property',
+            sortText: `0${index.toString().padStart(4, '0')}`, // Sort to top
+            range,
+          })),
+          // System properties
+          ...systemProperties.map((prop, index) => ({
+            label: prop,
+            kind: monacoRef.current.languages.CompletionItemKind.Property,
+            insertText: prop,
+            detail: 'System property',
+            sortText: `1${index.toString().padStart(4, '0')}`, // After document properties
+            range,
+          })),
+          // Add 'c.' prefix suggestions
+          {
+            label: 'c',
+            kind: monacoRef.current.languages.CompletionItemKind.Variable,
+            insertText: 'c.',
+            detail: 'Container alias',
+            sortText: '20000',
+            range,
+          },
+          // SQL Keywords
+          ...sqlKeywords.map((keyword, index) => ({
+            label: keyword,
+            kind: monacoRef.current.languages.CompletionItemKind.Keyword,
+            insertText: keyword,
+            sortText: `3${index.toString().padStart(4, '0')}`, // At the bottom
+            range,
+          })),
+        ]
+
+        console.log('Providing suggestions:', suggestions.length)
+        return { suggestions }
+      },
+    })
+
+    // Cleanup on unmount
+    return () => {
+      if (completionProviderRef.current) {
+        completionProviderRef.current.dispose()
+      }
+    }
+  }, [properties])
+
   // Handle editor mount
-  function handleEditorDidMount(editor: editor.IStandaloneCodeEditor) {
+  function handleEditorDidMount(editor: editor.IStandaloneCodeEditor, monaco: any) {
     editorRef.current = editor
+    monacoRef.current = monaco
 
     // Add Cmd/Ctrl + Enter command directly to Monaco
     editor.addCommand(
