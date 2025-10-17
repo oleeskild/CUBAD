@@ -12,6 +12,7 @@ export interface AIQueryContext {
   containerName: string
   databaseName: string
   accountName: string
+  resourceGroup?: string
   partitionKey?: string
   sampleDocuments?: any[]
 }

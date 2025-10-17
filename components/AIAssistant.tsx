@@ -14,6 +14,9 @@ export default function AIAssistant({ context, onInsertQuery }: AIAssistantProps
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ query: string; explanation: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sampleDocumentAdded, setSampleDocumentAdded] = useState(false)
+  const [loadingSample, setLoadingSample] = useState(false)
+  const [contextWithSample, setContextWithSample] = useState<AIQueryContext>(context)
 
   async function handleGenerate() {
     const provider = getSelectedProvider()
@@ -38,7 +41,7 @@ export default function AIAssistant({ context, onInsertQuery }: AIAssistantProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt,
-          context,
+          context: contextWithSample,
           provider,
         }),
       })
@@ -73,6 +76,76 @@ export default function AIAssistant({ context, onInsertQuery }: AIAssistantProps
     }
   }
 
+  async function handleAddSampleDocument() {
+    setLoadingSample(true)
+    setError(null)
+
+    try {
+      // Sanitize the document by replacing values with type defaults
+      const sanitizeValue = (value: any): any => {
+        if (value === null || value === undefined) {
+          return null
+        }
+        if (typeof value === 'string') {
+          return '[REDACTED]'
+        }
+        if (typeof value === 'number') {
+          return 0
+        }
+        if (typeof value === 'boolean') {
+          return false
+        }
+        if (Array.isArray(value)) {
+          return value.length > 0 ? [sanitizeValue(value[0])] : []
+        }
+        if (typeof value === 'object') {
+          const sanitized: any = {}
+          for (const key in value) {
+            if (value.hasOwnProperty(key)) {
+              sanitized[key] = sanitizeValue(value[key])
+            }
+          }
+          return sanitized
+        }
+        return value
+      }
+
+      // Fetch the actual full document structure
+      const docResponse = await fetch(
+        `/api/query`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountName: context.accountName,
+            resourceGroup: context.resourceGroup || '',
+            databaseId: context.databaseName,
+            containerId: context.containerName,
+            query: 'SELECT TOP 1 * FROM c ORDER BY c._ts DESC'
+          })
+        }
+      )
+      const docData = await docResponse.json()
+
+      if (docData.success && docData.results && docData.results.length > 0) {
+        const sanitized = sanitizeValue(docData.results[0])
+        console.log('Sanitized document added to AI context:', sanitized)
+        setContextWithSample({
+          ...context,
+          sampleDocuments: [sanitized]
+        })
+        setSampleDocumentAdded(true)
+      } else {
+        throw new Error('No documents found in container')
+      }
+    } catch (err: any) {
+      console.error('Failed to add sample document:', err)
+      setError(err.message || 'Failed to add sample document')
+    } finally {
+      setLoadingSample(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
@@ -93,6 +166,72 @@ export default function AIAssistant({ context, onInsertQuery }: AIAssistantProps
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">
+        {/* Sample Document Button */}
+        <div className="mb-4">
+          <button
+            onClick={handleAddSampleDocument}
+            disabled={loadingSample || sampleDocumentAdded}
+            className={`w-full px-3 py-2 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+              sampleDocumentAdded
+                ? 'bg-green-50 dark:bg-green-950 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
+                : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            {loadingSample ? (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Loading...
+              </>
+            ) : sampleDocumentAdded ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Document Schema Added
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Add Document Schema
+              </>
+            )}
+          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Adds a sanitized document structure (values redacted) to help AI understand your data
+          </p>
+        </div>
+
         <div className="mb-4">
           <label className="block text-xs font-medium mb-2">What do you want to find?</label>
           <textarea

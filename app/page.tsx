@@ -17,18 +17,40 @@ import { useNavigationStore } from '@/store/navigation'
 import { useTabStore } from '@/store/tabs'
 import { addToQueryHistory } from '@/lib/storage/query-history'
 import { usePanelNavigation } from '@/hooks/usePanelNavigation'
+import { getSearchIndexMetadata } from '@/lib/db/search-index'
 
 function HomeContent() {
   const searchParams = useSearchParams()
   const { selectedAccount, selectedAccountResourceGroup, selectedDatabase, selectedContainer, initFromUrl } = useNavigationStore()
   const { tabs, getActiveTab, updateTabResults, updateTab, addTab, activeTabId } = useTabStore()
   const [executing, setExecuting] = useState(false)
+  const [searchIndexBuilt, setSearchIndexBuilt] = useState(false)
+  const [checkingIndex, setCheckingIndex] = useState(true)
 
   // Sidebar collapse state
   const [accountsCollapsed, setAccountsCollapsed] = useState(false)
   const [databasesCollapsed, setDatabasesCollapsed] = useState(false)
   const [containersCollapsed, setContainersCollapsed] = useState(false)
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
+
+  // Check if search index is built
+  useEffect(() => {
+    async function checkSearchIndex() {
+      try {
+        const metadata = await getSearchIndexMetadata()
+        // If there's metadata with counts, the index is built
+        if (metadata && metadata.totalAccounts > 0) {
+          setSearchIndexBuilt(true)
+        }
+      } catch (error) {
+        console.error('Failed to check search index:', error)
+      } finally {
+        setCheckingIndex(false)
+      }
+    }
+
+    checkSearchIndex()
+  }, [])
 
   // Initialize navigation state from URL params on mount
   useEffect(() => {
@@ -133,7 +155,21 @@ function HomeContent() {
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-2xl font-bold">Cubad</h1>
+          <div className="flex items-center gap-3">
+            <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(256, 226)">
+                <path d="M 0,-120 L 120,-60 L 0,0 L -120,-60 Z" fill="#93C5FD"/>
+                <path d="M 120,-60 L 120,120 L 0,180 L 0,0 Z" fill="#60A5FA"/>
+                <path d="M -120,-60 L 0,0 L 0,180 L -120,120 Z" fill="#3B82F6"/>
+                <path d="M 0,0 L 120,60 L 0,120 L -120,60 Z" fill="#93C5FD" opacity="0.9"/>
+                <path d="M 120,60 L 120,180 L 0,240 L 0,120 Z" fill="#60A5FA" opacity="0.9"/>
+                <path d="M -120,60 L 0,120 L 0,240 L -120,180 Z" fill="#3B82F6" opacity="0.9"/>
+                <line x1="-120" y1="-60" x2="-120" y2="120" stroke="#2563EB" strokeWidth="3"/>
+                <line x1="120" y1="-60" x2="120" y2="180" stroke="#3B82F6" strokeWidth="3"/>
+              </g>
+            </svg>
+            <h1 className="text-2xl font-bold">Cubad</h1>
+          </div>
           <div className="flex items-center gap-4">
             <div className="text-xs text-gray-500">
               <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700">⌘K</kbd> search
@@ -230,36 +266,121 @@ function HomeContent() {
             <>
               <h2 className="text-3xl font-bold mb-2">Welcome to Cubad</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-8">
-                A better UI for Azure Cosmos DB
+                Cosmos UI But Actually Decent
               </p>
 
-              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-8">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Get started by selecting an account from the sidebar or press{' '}
-                  <kbd className="px-1.5 py-0.5 font-mono bg-blue-100 dark:bg-blue-900 rounded">⌘K</kbd>{' '}
-                  to search
-                </p>
-              </div>
+              <div className="space-y-4 max-w-2xl">
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-4 text-blue-900 dark:text-blue-100">Getting Started</h3>
 
-              <div className="space-y-4">
-                <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">Phase 2 Complete ✓</h3>
-                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    <li>✓ Database and container navigation</li>
-                    <li>✓ Command palette (⌘K)</li>
-                    <li>✓ Hierarchical sidebar navigation</li>
-                    <li>✓ Breadcrumb navigation</li>
-                    <li>✓ State management with Zustand</li>
-                  </ul>
+                  <ol className="space-y-4 text-sm text-blue-800 dark:text-blue-200">
+                    <li className="flex gap-3">
+                      <span className="font-bold flex-shrink-0">1.</span>
+                      <div>
+                        <strong>Authenticate with Azure CLI</strong>
+                        <p className="text-blue-700 dark:text-blue-300 mt-1">
+                          Run <code className="px-1.5 py-0.5 font-mono bg-blue-100 dark:bg-blue-900 rounded">az login</code> and make sure you&apos;re on the correct subscription
+                        </p>
+                      </div>
+                    </li>
+
+                    <li className="flex gap-3">
+                      <span className="font-bold flex-shrink-0">2.</span>
+                      <div>
+                        <strong>Index your databases</strong>
+                        <p className="text-blue-700 dark:text-blue-300 mt-1">
+                          Build a search index for fast navigation with{' '}
+                          <kbd className="px-1.5 py-0.5 font-mono bg-blue-100 dark:bg-blue-900 rounded">⌘K</kbd>
+                        </p>
+                        {checkingIndex ? (
+                          <div className="mt-2 text-blue-600 dark:text-blue-400 text-sm">
+                            Checking index status...
+                          </div>
+                        ) : searchIndexBuilt ? (
+                          <div className="mt-2 flex items-center gap-2 text-green-700 dark:text-green-300">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span className="text-sm font-medium">Search index already built</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch('/api/search-index/build', { method: 'POST' })
+                                if (response.ok) {
+                                  setSearchIndexBuilt(true)
+                                  alert('Search index built successfully!')
+                                } else {
+                                  const data = await response.json()
+                                  alert(`Failed to build index: ${data.message || data.error}`)
+                                }
+                              } catch (error: any) {
+                                alert(`Failed to build index: ${error.message}`)
+                              }
+                            }}
+                            className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium transition-colors"
+                          >
+                            Build Search Index
+                          </button>
+                        )}
+                      </div>
+                    </li>
+
+                    <li className="flex gap-3">
+                      <span className="font-bold flex-shrink-0">3.</span>
+                      <div>
+                        <strong>Configure AI Assistant (optional)</strong>
+                        <p className="text-blue-700 dark:text-blue-300 mt-1">
+                          Set up your preferred AI provider in{' '}
+                          <a href="/settings" className="underline hover:text-blue-600 dark:hover:text-blue-200">
+                            Settings
+                          </a>{' '}
+                          for natural language query generation
+                        </p>
+                      </div>
+                    </li>
+
+                    <li className="flex gap-3">
+                      <span className="font-bold flex-shrink-0">4.</span>
+                      <div>
+                        <strong>Start querying</strong>
+                        <p className="text-blue-700 dark:text-blue-300 mt-1">
+                          Select an account from the sidebar or press{' '}
+                          <kbd className="px-1.5 py-0.5 font-mono bg-blue-100 dark:bg-blue-900 rounded">⌘K</kbd>{' '}
+                          to search for databases and containers
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
                 </div>
 
                 <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">Next: Phase 3</h3>
-                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    <li>→ Query editor with Monaco</li>
-                    <li>→ Execute queries with read-only keys</li>
-                    <li>→ Results viewer with JSON formatting</li>
-                    <li>→ Query history and saved queries</li>
+                  <h3 className="font-semibold mb-3 text-sm">Quick Tips</h3>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                    <li className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">⌘K</kbd>
+                      <span>Open command palette for quick navigation</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">⌘↵</kbd>
+                      <span>Execute query in the editor</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">h</kbd>
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">l</kbd>
+                      <span>Navigate between panels</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">j</kbd>
+                      <kbd className="px-1.5 py-0.5 font-mono bg-gray-100 dark:bg-gray-800 rounded text-xs">k</kbd>
+                      <span>Navigate items in lists</span>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -308,6 +429,7 @@ function HomeContent() {
                       containerName: activeTab.containerName || selectedContainer || '',
                       databaseName: activeTab.databaseName || selectedDatabase || '',
                       accountName: activeTab.accountName || selectedAccount || '',
+                      resourceGroup: activeTab.accountResourceGroup || selectedAccountResourceGroup || '',
                     }}
                     onInsertQuery={(query) => {
                       if (activeTab) {
