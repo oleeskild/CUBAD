@@ -1,134 +1,102 @@
-# Cubad - Azure Cosmos DB UI
+<div align="center">
+  <img src="app/icon.svg" width="128" height="128" alt="Cubad Logo">
+  <h1>Cubad</h1>
+  <p><strong>Cosmos UI But Actually Decent</strong></p>
+  <p>A modern, fast, and intuitive web-based UI for Azure Cosmos DB</p>
+</div>
 
-A modern, fast, and intuitive web-based UI for Azure Cosmos DB.
+---
 
-## Features (Phase 1)
+## What is Cubad?
 
-- 🔐 Azure authentication via Azure CLI (DefaultAzureCredential)
-- 📋 List all Cosmos DB accounts in your subscription
-- 🔒 Read-only mode by default (safe to use)
-- 🎨 Modern UI with Tailwind CSS
-- 🌙 Dark mode support
+Cubad is a developer-friendly UI for Azure Cosmos DB that doesn't suck. It provides:
 
-## Getting Started
+- 🔍 **Fast Search** - Command palette (⌘K) for instant navigation
+- 📝 **Query Editor** - Monaco-powered SQL editor with autocomplete
+- 🤖 **AI Assistant** - Natural language to SQL query generation
+- ⌨️ **Vim Navigation** - Keyboard shortcuts for everything (h/j/k/l)
+- 🎨 **Modern UI** - Clean interface with dark mode
+- 🔒 **Read-only Safe** - Uses read-only keys by default
+- 📊 **Query History** - Track and save your queries
+
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- Azure CLI installed and authenticated
+- Azure CLI
 - Access to Azure subscription with Cosmos DB accounts
 
 ### Installation
 
-1. Clone the repository and install dependencies:
-
 ```bash
+# Clone the repository
+git clone <your-repo-url>
+cd cubad
+
+# Install dependencies
 npm install
-```
 
-2. Authenticate with Azure CLI:
-
-```bash
+# Authenticate with Azure
 az login
-```
 
-3. (Optional) Set your Azure subscription ID:
-
-```bash
-cp .env.local.example .env.local
-# Edit .env.local and add your AZURE_SUBSCRIPTION_ID
-```
-
-If you don't set `AZURE_SUBSCRIPTION_ID`, the app will try to use your default subscription.
-
-4. Run the development server:
-
-```bash
+# Run the development server
 npm run dev
 ```
 
-5. Open [http://localhost:9090](http://localhost:9090) in your browser.
+Open [http://localhost:9090](http://localhost:9090) and you're ready to go!
 
-## Architecture
+### First Time Setup
 
-- **Frontend**: Next.js 15 (App Router) with TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: Azure DefaultAzureCredential (Azure CLI, Managed Identity, etc.)
-- **Azure SDKs**:
-  - `@azure/identity` - Authentication
-  - `@azure/arm-cosmosdb` - Account management
-  - `@azure/cosmos` - Data operations (coming in Phase 3)
+1. **Build Search Index** - Click the button on the welcome screen to index your databases
+2. **Configure AI (Optional)** - Set up your AI provider in Settings for natural language queries
+3. **Start Querying** - Use ⌘K to search or select from the sidebar
 
-## Project Structure
+## Key Features
 
-```
-cubad/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   └── accounts/      # List Cosmos DB accounts
-│   ├── page.tsx           # Home page
-│   └── layout.tsx         # Root layout
-├── components/            # React components
-│   └── AccountList.tsx    # Account list component
-├── lib/                   # Utility libraries
-│   └── azure/            # Azure services
-│       ├── auth.ts       # Authentication
-│       └── management.ts # Account management
-├── types/                # TypeScript types
-│   └── cosmos.ts         # Cosmos DB types
-└── PLANNING.md           # Full project plan
-```
+### Command Palette (⌘K)
+Instant search across all your accounts, databases, and containers.
+
+### Smart Autocomplete
+Query editor suggests document properties from your actual data - no more guessing field names.
+
+### AI Query Assistant
+Describe what you want in plain English, get a ready-to-run SQL query. Optionally add a GDPR-safe document schema for better results.
+
+### Vim-style Navigation
+- `h`/`l` - Navigate between panels
+- `j`/`k` - Navigate items in lists
+- `⌘↵` - Execute query
 
 ## Security
 
-- **Read-only by default**: The app uses read-only keys for all Cosmos DB operations
-- **No write access**: Phase 1 only lists accounts and will query data (Phase 3)
-- **Write operations**: Will be opt-in only in later phases with explicit user confirmation
+- **Read-only by default** - Uses read-only keys for all operations
+- **GDPR-compliant** - AI features sanitize all values from documents
+- **No secrets stored** - Uses Azure CLI authentication
 
-## Development
+## Tech Stack
 
-```bash
-# Run development server with Turbopack
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-```
-
-## Roadmap
-
-- ✅ **Phase 1**: Core infrastructure and account listing (Complete)
-- 🔄 **Phase 2**: Command palette (cmd+k) and navigation
-- 📝 **Phase 3**: Query editor with Monaco
-- 🤖 **Phase 4**: AI-assisted query writing
-- ⚡ **Phase 5**: Advanced features and optimizations
-- 🚀 **Phase 6**: Deployment and documentation
-
-See [PLANNING.md](./PLANNING.md) for the complete project plan.
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Editor**: Monaco (VS Code)
+- **Database**: IndexedDB (for local caching)
+- **Auth**: Azure DefaultAzureCredential
 
 ## Troubleshooting
 
 ### Authentication Error
+```bash
+az login
+az account show
+az account set --subscription <subscription-id>
+```
 
-If you see authentication errors:
+### No Accounts Listed
+Make sure you're on the correct subscription and have Cosmos DB accounts.
 
-1. Make sure you're logged in: `az login`
-2. Check your subscription: `az account show`
-3. Set the correct subscription: `az account set --subscription <subscription-id>`
-
-### No Accounts Found
-
-If no accounts are listed:
-
-1. Verify you have Cosmos DB accounts in your subscription
-2. Check that you have read permissions on the subscription
-3. Try setting `AZURE_SUBSCRIPTION_ID` explicitly in `.env.local`
+### Search Not Working
+Build the search index from the welcome screen or Settings.
 
 ## License
 
