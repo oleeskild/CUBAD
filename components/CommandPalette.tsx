@@ -14,9 +14,10 @@ export default function CommandPalette() {
   const [accounts, setAccounts] = useState<CosmosAccount[]>([])
   const [databases, setDatabases] = useState<Array<{ id: string; accountName: string; accountResourceGroup: string }>>([])
   const [containers, setContainers] = useState<Array<{ id: string; accountName: string; accountResourceGroup: string; databaseName: string }>>([])
+  const [contextContainers, setContextContainers] = useState<Array<{ id: string; accountName: string; accountResourceGroup: string; databaseName: string }>>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { selectAccount, selectDatabase, selectContainer } = useNavigationStore()
+  const { selectAccount, selectDatabase, selectContainer, selectedDatabase, selectedAccount } = useNavigationStore()
 
   // Listen for cmd+k / ctrl+k
   useEffect(() => {
@@ -86,9 +87,27 @@ export default function CommandPalette() {
           15
         )
 
+        // Filter containers for the selected account and database if both are selected
+        let contextFilteredContainers: Array<{ id: string; accountName: string; accountResourceGroup: string; databaseName: string }> = []
+        if (selectedDatabase && selectedAccount) {
+          const containersInSelectedContext = index.containers.filter(
+            cont => cont.databaseName === selectedDatabase && cont.accountName === selectedAccount
+          )
+          contextFilteredContainers = fuzzyFilter(
+            containersInSelectedContext,
+            search,
+            (cont) => [
+              cont.id,
+              applyDisplayFilters(cont.id, 'container'),
+            ],
+            15
+          )
+        }
+
         setAccounts(filteredAccounts)
         setDatabases(filteredDatabases)
         setContainers(filteredContainers)
+        setContextContainers(contextFilteredContainers)
       } catch (error) {
         console.error('Failed to search index:', error)
         // Fallback: try to fetch accounts from API
@@ -112,7 +131,7 @@ export default function CommandPalette() {
     }, 150)
 
     return () => clearTimeout(timeoutId)
-  }, [open, search])
+  }, [open, search, selectedDatabase, selectedAccount])
 
   if (!open) return null
 
@@ -153,6 +172,46 @@ export default function CommandPalette() {
             <Command.Empty className="py-6 text-center text-sm text-gray-500">
               No results found.
             </Command.Empty>
+
+            {selectedDatabase && contextContainers.length > 0 && (
+              <Command.Group heading={`Containers in ${applyDisplayFilters(selectedDatabase, 'database')}`} className="text-xs font-semibold text-gray-500 px-2 py-1.5">
+                {contextContainers.map((container) => (
+                  <Command.Item
+                    key={`${container.accountName}-${container.databaseName}-${container.id}`}
+                    value={`${container.id} ${container.databaseName} ${container.accountName}`}
+                    onSelect={() => {
+                      selectAccount(container.accountName, container.accountResourceGroup)
+                      selectDatabase(container.databaseName)
+                      selectContainer(container.id)
+                      setOpen(false)
+                    }}
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 aria-selected:bg-gray-100 dark:aria-selected:bg-gray-800"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{applyDisplayFilters(container.id, 'container')}</div>
+                      <div className="text-xs text-gray-500">
+                        {applyDisplayFilters(container.accountName, 'database')}
+                      </div>
+                    </div>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+            )}
 
             {accounts.length > 0 && (
               <Command.Group heading="Accounts" className="text-xs font-semibold text-gray-500 px-2 py-1.5">

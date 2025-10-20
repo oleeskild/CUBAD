@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigationStore } from '@/store/navigation'
 import { applyDisplayFilters } from '@/lib/storage/display-filters'
 import { useVimNavigation } from '@/hooks/useVimNavigation'
@@ -12,6 +12,7 @@ export default function DatabaseList() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const databaseRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   // Filter databases based on search query
   const filteredDatabases = databases.filter((db) => {
@@ -83,6 +84,14 @@ export default function DatabaseList() {
     fetchDatabases()
   }, [selectedAccount, selectedAccountResourceGroup])
 
+  // Scroll selected database into view
+  useEffect(() => {
+    if (selectedDatabase && databaseRefs.current.has(selectedDatabase)) {
+      const element = databaseRefs.current.get(selectedDatabase)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [selectedDatabase])
+
   if (!selectedAccount) {
     return (
       <div className="text-sm text-gray-500 text-center py-8">
@@ -143,6 +152,13 @@ export default function DatabaseList() {
         return (
           <button
             key={db.id}
+            ref={(el) => {
+              if (el) {
+                databaseRefs.current.set(db.id, el)
+              } else {
+                databaseRefs.current.delete(db.id)
+              }
+            }}
             onClick={() => selectDatabase(db.id)}
             className={`w-full text-left p-3 rounded-lg border transition-colors ${
               isSelected

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigationStore } from '@/store/navigation'
 import { applyDisplayFilters } from '@/lib/storage/display-filters'
 import { useVimNavigation } from '@/hooks/useVimNavigation'
@@ -20,6 +20,7 @@ export default function ContainerList() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const containerRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   // Filter containers based on search query
   const filteredContainers = containers.filter((container) => {
@@ -84,6 +85,14 @@ export default function ContainerList() {
     fetchContainers()
   }, [selectedAccount, selectedAccountResourceGroup, selectedDatabase])
 
+  // Scroll selected container into view
+  useEffect(() => {
+    if (selectedContainer && containerRefs.current.has(selectedContainer)) {
+      const element = containerRefs.current.get(selectedContainer)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [selectedContainer])
+
   if (!selectedDatabase) {
     return (
       <div className="text-sm text-gray-500 text-center py-8">
@@ -144,6 +153,13 @@ export default function ContainerList() {
         return (
           <button
             key={container.id}
+            ref={(el) => {
+              if (el) {
+                containerRefs.current.set(container.id, el)
+              } else {
+                containerRefs.current.delete(container.id)
+              }
+            }}
             onClick={() => selectContainer(container.id)}
             className={`w-full text-left p-3 rounded-lg border transition-colors ${
               isSelected
