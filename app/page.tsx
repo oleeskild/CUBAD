@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import AccountList from '@/components/AccountList'
 import DatabaseList from '@/components/DatabaseList'
 import ContainerList from '@/components/ContainerList'
@@ -22,6 +22,7 @@ import { getSearchIndexMetadata } from '@/lib/db/search-index'
 
 function HomeContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { selectedAccount, selectedAccountResourceGroup, selectedDatabase, selectedContainer, initFromUrl } = useNavigationStore()
   const { tabs, getActiveTab, updateTabResults, updateTab, addTab, activeTabId } = useTabStore()
   const [executing, setExecuting] = useState(false)
@@ -330,20 +331,7 @@ function HomeContent() {
                           </div>
                         ) : (
                           <button
-                            onClick={async () => {
-                              try {
-                                const response = await fetch('/api/search-index/build', { method: 'POST' })
-                                if (response.ok) {
-                                  setSearchIndexBuilt(true)
-                                  alert('Search index built successfully!')
-                                } else {
-                                  const data = await response.json()
-                                  alert(`Failed to build index: ${data.message || data.error}`)
-                                }
-                              } catch (error: any) {
-                                alert(`Failed to build index: ${error.message}`)
-                              }
-                            }}
+                            onClick={() => router.push('/settings')}
                             className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium transition-colors"
                           >
                             Build Search Index

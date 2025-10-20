@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Editor from '@monaco-editor/react'
 
 interface ResultsViewProps {
   results: any[] | null
@@ -10,26 +11,6 @@ interface ResultsViewProps {
     executionTime: number
   } | null
   error: string | null
-}
-
-// Syntax highlighting function for JSON
-function syntaxHighlight(json: string) {
-  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-    let cls = 'text-orange-600 dark:text-orange-400' // number
-    if (/^"/.test(match)) {
-      if (/:$/.test(match)) {
-        cls = 'text-blue-600 dark:text-blue-400' // key
-      } else {
-        cls = 'text-green-600 dark:text-green-400' // string
-      }
-    } else if (/true|false/.test(match)) {
-      cls = 'text-purple-600 dark:text-purple-400' // boolean
-    } else if (/null/.test(match)) {
-      cls = 'text-red-600 dark:text-red-400' // null
-    }
-    return '<span class="' + cls + '">' + match + '</span>'
-  })
 }
 
 export default function ResultsView({ results, metadata, error }: ResultsViewProps) {
@@ -179,10 +160,34 @@ export default function ResultsView({ results, metadata, error }: ResultsViewPro
                 </button>
 
                 {expandedItems.has(index) && (
-                  <div className="p-4 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
-                    <pre className="text-xs font-mono overflow-x-auto">
-                      <code className="text-gray-900 dark:text-gray-100" dangerouslySetInnerHTML={{ __html: syntaxHighlight(JSON.stringify(item, null, 2)) }} />
-                    </pre>
+                  <div className="border-t border-gray-200 dark:border-gray-800">
+                    <Editor
+                      height="400px"
+                      defaultLanguage="json"
+                      value={JSON.stringify(item, null, 2)}
+                      theme="vs-dark"
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        wordWrap: 'off',
+                        folding: true,
+                        foldingHighlight: true,
+                        showFoldingControls: 'always',
+                        scrollbar: {
+                          vertical: 'auto',
+                          horizontal: 'auto',
+                        },
+                        find: {
+                          addExtraSpaceOnTop: false,
+                          autoFindInSelection: 'never',
+                          seedSearchStringFromSelection: 'never',
+                        },
+                      }}
+                    />
                   </div>
                 )}
               </div>
