@@ -6,8 +6,13 @@ import { AIProviderType, AIProviderConfig } from '@/types/ai'
 
 export default function AISettingsSection() {
   const [settings, setSettings] = useState<AISettings>(getAISettings())
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [testing, setTesting] = useState<AIProviderType | null>(null)
+  const [testResults, setTestResults] = useState<Record<AIProviderType, { success: boolean; message: string } | null>>({
+    anthropic: null,
+    openrouter: null,
+    ollama: null,
+    'azure-openai': null,
+  })
   const [selectedProviderType, setSelectedProviderType] = useState<AIProviderType | ''>('')
 
   useEffect(() => {
@@ -25,8 +30,8 @@ export default function AISettingsSection() {
   }
 
   async function handleTestConnection(providerType: AIProviderType) {
-    setTesting(true)
-    setTestResult(null)
+    setTesting(providerType)
+    setTestResults(prev => ({ ...prev, [providerType]: null }))
 
     try {
       const providerConfig = settings.providers[providerType]
@@ -48,14 +53,14 @@ export default function AISettingsSection() {
       const data = await response.json()
 
       if (data.success) {
-        setTestResult({ success: true, message: 'Connection successful!' })
+        setTestResults(prev => ({ ...prev, [providerType]: { success: true, message: 'Connection successful!' } }))
       } else {
-        setTestResult({ success: false, message: data.error || 'Connection failed' })
+        setTestResults(prev => ({ ...prev, [providerType]: { success: false, message: data.error || 'Connection failed' } }))
       }
     } catch (error: any) {
-      setTestResult({ success: false, message: error.message || 'Failed to test connection' })
+      setTestResults(prev => ({ ...prev, [providerType]: { success: false, message: error.message || 'Failed to test connection' } }))
     } finally {
-      setTesting(false)
+      setTesting(null)
     }
   }
 
@@ -120,21 +125,42 @@ export default function AISettingsSection() {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTestConnection('anthropic')}
-              disabled={!settings.providers.anthropic?.apiKey || testing}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              onClick={() => handleSetAsDefault('anthropic')}
-              disabled={!settings.providers.anthropic?.apiKey}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
-            >
-              Set as Default
-            </button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleTestConnection('anthropic')}
+                disabled={!settings.providers.anthropic?.apiKey || testing === 'anthropic'}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
+              >
+                {testing === 'anthropic' ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                onClick={() => handleSetAsDefault('anthropic')}
+                disabled={!settings.providers.anthropic?.apiKey}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                Set as Default
+              </button>
+            </div>
+            {testResults.anthropic && (
+              <div
+                className={`p-3 rounded-lg ${
+                  testResults.anthropic.success
+                    ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    testResults.anthropic.success
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {testResults.anthropic.message}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -173,21 +199,42 @@ export default function AISettingsSection() {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTestConnection('openrouter')}
-              disabled={!settings.providers.openrouter?.apiKey || testing}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              onClick={() => handleSetAsDefault('openrouter')}
-              disabled={!settings.providers.openrouter?.apiKey}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
-            >
-              Set as Default
-            </button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleTestConnection('openrouter')}
+                disabled={!settings.providers.openrouter?.apiKey || testing === 'openrouter'}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
+              >
+                {testing === 'openrouter' ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                onClick={() => handleSetAsDefault('openrouter')}
+                disabled={!settings.providers.openrouter?.apiKey}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                Set as Default
+              </button>
+            </div>
+            {testResults.openrouter && (
+              <div
+                className={`p-3 rounded-lg ${
+                  testResults.openrouter.success
+                    ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    testResults.openrouter.success
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {testResults.openrouter.message}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -226,20 +273,42 @@ export default function AISettingsSection() {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTestConnection('ollama')}
-              disabled={testing}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              onClick={() => handleSetAsDefault('ollama')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
-            >
-              Set as Default
-            </button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleTestConnection('ollama')}
+                disabled={testing === 'ollama'}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
+              >
+                {testing === 'ollama' ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                onClick={() => handleSetAsDefault('ollama')}
+                disabled={!settings.providers.ollama?.endpoint || !settings.providers.ollama?.model}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                Set as Default
+              </button>
+            </div>
+            {testResults.ollama && (
+              <div
+                className={`p-3 rounded-lg ${
+                  testResults.ollama.success
+                    ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    testResults.ollama.success
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {testResults.ollama.message}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -289,52 +358,52 @@ export default function AISettingsSection() {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTestConnection('azure-openai')}
-              disabled={
-                !settings.providers['azure-openai']?.apiKey ||
-                !settings.providers['azure-openai']?.endpoint ||
-                testing
-              }
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              onClick={() => handleSetAsDefault('azure-openai')}
-              disabled={
-                !settings.providers['azure-openai']?.apiKey ||
-                !settings.providers['azure-openai']?.endpoint
-              }
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
-            >
-              Set as Default
-            </button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleTestConnection('azure-openai')}
+                disabled={
+                  !settings.providers['azure-openai']?.apiKey ||
+                  !settings.providers['azure-openai']?.endpoint ||
+                  testing === 'azure-openai'
+                }
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-900 rounded-lg font-medium transition-colors text-sm"
+              >
+                {testing === 'azure-openai' ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                onClick={() => handleSetAsDefault('azure-openai')}
+                disabled={
+                  !settings.providers['azure-openai']?.apiKey ||
+                  !settings.providers['azure-openai']?.endpoint
+                }
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors text-sm"
+              >
+                Set as Default
+              </button>
+            </div>
+            {testResults['azure-openai'] && (
+              <div
+                className={`p-3 rounded-lg ${
+                  testResults['azure-openai'].success
+                    ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    testResults['azure-openai'].success
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {testResults['azure-openai'].message}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Test Result */}
-      {testResult && (
-        <div
-          className={`p-4 rounded-lg ${
-            testResult.success
-              ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
-              : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
-          }`}
-        >
-          <p
-            className={`text-sm ${
-              testResult.success
-                ? 'text-green-700 dark:text-green-300'
-                : 'text-red-700 dark:text-red-300'
-            }`}
-          >
-            {testResult.message}
-          </p>
-        </div>
-      )}
 
       {/* Info Box */}
       <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
