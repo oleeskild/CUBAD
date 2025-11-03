@@ -8,7 +8,7 @@ import ContainerList from '@/components/ContainerList'
 import CommandPalette from '@/components/CommandPalette'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import QueryEditor from '@/components/QueryEditor'
-import ResultsView from '@/components/ResultsView'
+import ResultsPanel from '@/components/ResultsPanel'
 import ResizablePanels from '@/components/ResizablePanels'
 import TabBar from '@/components/TabBar'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar'
@@ -77,6 +77,7 @@ function HomeContent() {
     }
   }, [selectedContainer, tabs.length, selectedAccount, selectedAccountResourceGroup, selectedDatabase, addTab])
 
+  
   // Update active tab's context when navigation changes
   useEffect(() => {
     const activeTab = getActiveTab()
@@ -421,11 +422,22 @@ function HomeContent() {
                 <ResizablePanels
                   topPanel={<QueryEditor onExecute={executeQuery} executing={executing} />}
                   bottomPanel={
-                    <ResultsView
-                      results={activeTab?.results || null}
-                      metadata={activeTab?.metadata || null}
-                      error={activeTab?.error || null}
-                    />
+                    activeTab ? (
+                      <ResultsPanel
+                        tabId={activeTab.id}
+                        results={activeTab.results}
+                        metadata={activeTab.metadata}
+                        error={activeTab.error}
+                        context={{
+                          accountName: activeTab.accountName || '',
+                          resourceGroup: activeTab.accountResourceGroup || undefined,
+                          databaseName: activeTab.databaseName || '',
+                          containerName: activeTab.containerName || '',
+                        }}
+                        viewMode={activeTab.viewMode}
+                        onRefreshQuery={() => executeQuery(activeTab.query)}
+                      />
+                    ) : null
                   }
                   defaultTopHeight={50}
                 />

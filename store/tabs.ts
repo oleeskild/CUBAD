@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+
+export type TabViewMode = 'query' | 'artifact'
 
 export interface QueryTab {
   id: string
@@ -11,6 +14,7 @@ export interface QueryTab {
   results: any[] | null
   metadata: any | null
   error: string | null
+  viewMode: TabViewMode
 }
 
 interface TabStore {
@@ -24,6 +28,7 @@ interface TabStore {
   updateTab: (tabId: string, updates: Partial<QueryTab>) => void
   updateTabQuery: (tabId: string, query: string) => void
   updateTabResults: (tabId: string, results: any[] | null, metadata: any | null, error: string | null) => void
+  setTabViewMode: (tabId: string, viewMode: TabViewMode) => void
   getActiveTab: () => QueryTab | null
 }
 
@@ -40,7 +45,9 @@ function generateTabName(index: number, containerName?: string | null): string {
   return `Query ${index + 1}`
 }
 
-export const useTabStore = create<TabStore>((set, get) => ({
+export const useTabStore = create<TabStore>()(
+  persist(
+    (set, get) => ({
   tabs: [],
   activeTabId: null,
 
@@ -60,6 +67,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
       results: null,
       metadata: null,
       error: null,
+      viewMode: 'query',
     }
 
     set({
@@ -144,4 +152,28 @@ export const useTabStore = create<TabStore>((set, get) => ({
     const { tabs, activeTabId } = get()
     return tabs.find((t) => t.id === activeTabId) || null
   },
-}))
+
+  setTabViewMode: (tabId, viewMode) => {
+      set((state) => ({
+        tabs: state.tabs.map((tab) =>
+          tab.id === tabId ? { ...tab, viewMode } : tab
+        ),
+      }))
+    },
+  }),
+  {
+    name: 'cubad-tabs-storage',
+    storage: createJSONStorage(() => localStorage),
+    // Don't persist loading states or temporary data
+    partialize: (state) => ({
+      tabs: state.tabs.map(tab => ({
+        ...tab,
+        results: null, // Clear results on load
+        metadata: null, // Clear metadata on load
+        error: null, // Clear errors on load
+      })),
+      activeTabId: state.activeTabId,
+    }),
+  }
+)
+)
