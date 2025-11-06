@@ -135,7 +135,7 @@ export function buildArtifactGenerationPrompt(
   sampleData?: any[]
 ): string {
   const sampleDataSection = sampleData && sampleData.length > 0
-    ? `\n\nSample Data Structure:\n${JSON.stringify(sampleData[0], null, 2)}`
+    ? `\n\nSample Data Structure:\n${JSON.stringify(sampleData[0], null, 2)}\n\nIMPORTANT: The data prop will be a LIST/ARRAY of sample objects like the one shown above, not a single object. Your component should handle an array of documents.`
     : ''
 
   return `Generate a React component artifact to visualize Cosmos DB data.
@@ -156,6 +156,8 @@ Requirements:
 1. Create a complete, self-contained React component
 2. The component MUST be named EXACTLY "ArtifactComponent" - no other names will work
 3. The component will receive data via props: { data, loading, error }
+   - CRITICAL: The data prop will be an ARRAY/LIST of objects, not a single object
+   - Your component should iterate over data (e.g., data.map(), data.length, etc.)
 4. Use Tailwind CSS for styling (classes available)
 5. Keep it simple and functional
 6. Handle loading and error states gracefully
@@ -175,10 +177,12 @@ function ArtifactComponent({ data, loading, error }) {
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
   if (!data || data.length === 0) return <div className="p-4 text-gray-600">No data available</div>;
 
-  // Your visualization logic here
+  // IMPORTANT: data is an ARRAY of objects, iterate over it
+  // Example: data.map(item => ...) or data.forEach(item => ...)
+
   return (
     <div className="p-4">
-      {/* Your UI here */}
+      {/* Your UI here - remember to handle the array of objects */}
     </div>
   );
 }
@@ -202,7 +206,7 @@ export function buildArtifactRefinementPrompt(
   sampleData?: any[]
 ): string {
   const sampleDataSection = sampleData && sampleData.length > 0
-    ? `\n\nSample Data Structure:\n${JSON.stringify(sampleData[0], null, 2)}`
+    ? `\n\nSample Data Structure:\n${JSON.stringify(sampleData[0], null, 2)}\n\nIMPORTANT: The data prop will be a LIST/ARRAY of sample objects like the one shown above, not a single object. Your component should handle an array of documents.`
     : ''
 
   return `You are modifying an existing React component artifact. Here is the current artifact:

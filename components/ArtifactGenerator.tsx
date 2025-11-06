@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { getSelectedProvider } from '@/lib/storage/ai-settings'
 import { AIQueryContext, ArtifactDefinition } from '@/types/ai'
+import SciFiLoading from './SciFiLoading'
+import SciFiButton from './SciFiButton'
 
 interface ArtifactGeneratorProps {
   context: AIQueryContext
@@ -20,6 +23,30 @@ export default function ArtifactGenerator({
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [generationMessage, setGenerationMessage] = useState('Initializing AI...')
+
+  // Cute messages to show during generation
+  const cuteMessages = [
+    "Teaching AI to code...",
+    "Consulting the crystal ball...",
+    "Brewing digital magic...",
+    "Assembling the pixels...",
+    "Waking up the algorithms...",
+    "Herding the data cats...",
+    "Charging the creativity batteries...",
+    "Polishing the code wand...",
+    "Summoning the component spirits...",
+    "Training our code monkeys...",
+    "Warming up the transistors...",
+    "Aligning the digital stars...",
+    "Consulting the README of destiny...",
+    "Debugging the matrix...",
+    "Downloading more RAM...",
+    "Asking Stack Overflow nicely...",
+    "Compiling the dreams...",
+    "Optimizing the butterflies..."
+  ]
 
   // Handle ESC key to close
   useEffect(() => {
@@ -43,32 +70,78 @@ export default function ArtifactGenerator({
 
     setLoading(true)
     setError(null)
+    setGenerationProgress(0)
+    setGenerationMessage(cuteMessages[Math.floor(Math.random() * cuteMessages.length)])
+
+    // Start API call immediately
+    const apiPromise = fetch('/api/ai/artifact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: prompt.trim() || 'Create the best visualization for this data',
+        context,
+        provider,
+        sampleData: currentData && currentData.length > 0 ? [currentData[0]] : undefined,
+      }),
+    })
+
+    // Simulate progress updates during generation (45 seconds total)
+    let progressCounter = 0
+    const progressInterval = setInterval(() => {
+      progressCounter++
+
+      // More realistic progress curve (slower at the end)
+      if (progressCounter <= 10) {
+        // First 5 seconds: rapid progress to 20%
+        setGenerationProgress(prev => Math.min(prev + 2, 20))
+      } else if (progressCounter <= 30) {
+        // Next 25 seconds: slow progress to 85%
+        setGenerationProgress(prev => Math.min(prev + 3, 85))
+      } else if (progressCounter <= 40) {
+        // Final 15 seconds: very slow progress to 95%
+        setGenerationProgress(prev => Math.min(prev + 1, 95))
+      }
+
+      // Change message occasionally
+      if (progressCounter % 8 === 0) {
+        setGenerationMessage(cuteMessages[Math.floor(Math.random() * cuteMessages.length)])
+      }
+    }, 1000) // Update every second for 45 seconds total
 
     try {
-      const response = await fetch('/api/ai/artifact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: prompt.trim() || 'Create the best visualization for this data',
-          context,
-          provider,
-          sampleData: currentData && currentData.length > 0 ? [currentData[0]] : undefined,
-        }),
-      })
-
+      // Wait for the actual API response
+      const response = await apiPromise
       const data = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to generate artifact')
       }
 
+      // API call completed, jump to 95% immediately
+      clearInterval(progressInterval)
+      setGenerationProgress(95)
+      setGenerationMessage('Almost there... sprinkling magic dust!')
+
+      // Short delay for final polish
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      setGenerationProgress(100)
+      setGenerationMessage('🎉 Artifact created successfully!')
+
+      await new Promise(resolve => setTimeout(resolve, 800))
+
       onArtifactGenerated(data.artifact)
       setPrompt('')
     } catch (err: any) {
       console.error('Artifact generation error:', err)
       setError(err.message || 'Failed to generate artifact')
+      setGenerationMessage('Oops! The magic failed...')
     } finally {
+      clearInterval(progressInterval)
       setLoading(false)
+      setTimeout(() => {
+        setGenerationProgress(0)
+      }, 1000)
     }
   }
 
@@ -149,37 +222,19 @@ export default function ArtifactGenerator({
           </div>
         )}
 
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2"
-        >
+        <div className={loading ? "mb-16" : ""}>
           {loading ? (
-            <>
-              <svg
-                className="animate-spin h-4 w-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Generating Artifact...
-            </>
+            <SciFiLoading
+              isLoading={loading}
+              progress={generationProgress}
+              message={generationMessage}
+            />
           ) : (
-            <>
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2"
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -189,9 +244,9 @@ export default function ArtifactGenerator({
                 />
               </svg>
               Generate Artifact
-            </>
+            </button>
           )}
-        </button>
+        </div>
 
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">

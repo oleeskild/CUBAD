@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { getSelectedProvider } from '@/lib/storage/ai-settings'
 import { AIQueryContext, ArtifactDefinition } from '@/types/ai'
+import SciFiLoading from './SciFiLoading'
+import SciFiButton from './SciFiButton'
 
 interface ArtifactEditorProps {
   artifact: ArtifactDefinition
@@ -22,6 +25,30 @@ export default function ArtifactEditor({
   const [refinementPrompt, setRefinementPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [refinementProgress, setRefinementProgress] = useState(0)
+  const [refinementMessage, setRefinementMessage] = useState('Initializing refinement...')
+
+  // Cute messages to show during refinement
+  const cuteRefinementMessages = [
+    "Teaching AI to edit...",
+    "Consulting the code crystal ball...",
+    "Refactoring the digital magic...",
+    "Rearranging the pixels...",
+    "Waking up the editing algorithms...",
+    "Herding the code cats...",
+    "Charging the creativity batteries...",
+    "Polishing the refinement wand...",
+    "Summoning the edit spirits...",
+    "Training our code monkeys to edit...",
+    "Warming up the editing transistors...",
+    "Aligning the modification stars...",
+    "Consulting the README of changes...",
+    "Debugging the edit matrix...",
+    "Downloading more editing RAM...",
+    "Asking Stack Overflow for edits...",
+    "Compiling the refined dreams...",
+    "Optimizing the edit butterflies..."
+  ]
 
   async function handleRefine() {
     const provider = getSelectedProvider()
@@ -38,34 +65,80 @@ export default function ArtifactEditor({
 
     setLoading(true)
     setError(null)
+    setRefinementProgress(0)
+    setRefinementMessage(cuteRefinementMessages[Math.floor(Math.random() * cuteRefinementMessages.length)])
+
+    // Start API call immediately
+    const apiPromise = fetch('/api/ai/artifact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: '', // Not used for refinement
+        context,
+        provider,
+        existingArtifact: artifact,
+        refinementPrompt: refinementPrompt.trim(),
+        sampleData: currentData && currentData.length > 0 ? [currentData[0]] : undefined,
+      }),
+    })
+
+    // Simulate progress updates during refinement (45 seconds total)
+    let progressCounter = 0
+    const progressInterval = setInterval(() => {
+      progressCounter++
+
+      // More realistic progress curve (slower at the end)
+      if (progressCounter <= 10) {
+        // First 5 seconds: rapid progress to 20%
+        setRefinementProgress(prev => Math.min(prev + 2, 20))
+      } else if (progressCounter <= 30) {
+        // Next 25 seconds: slow progress to 85%
+        setRefinementProgress(prev => Math.min(prev + 3, 85))
+      } else if (progressCounter <= 40) {
+        // Final 15 seconds: very slow progress to 95%
+        setRefinementProgress(prev => Math.min(prev + 1, 95))
+      }
+
+      // Change message occasionally
+      if (progressCounter % 8 === 0) {
+        setRefinementMessage(cuteRefinementMessages[Math.floor(Math.random() * cuteRefinementMessages.length)])
+      }
+    }, 1000) // Update every second for 45 seconds total
 
     try {
-      const response = await fetch('/api/ai/artifact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: '', // Not used for refinement
-          context,
-          provider,
-          existingArtifact: artifact,
-          refinementPrompt: refinementPrompt.trim(),
-          sampleData: currentData && currentData.length > 0 ? [currentData[0]] : undefined,
-        }),
-      })
-
+      // Wait for the actual API response
+      const response = await apiPromise
       const data = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to refine artifact')
       }
 
+      // API call completed, jump to 95% immediately
+      clearInterval(progressInterval)
+      setRefinementProgress(95)
+      setRefinementMessage('Almost there... polishing the final touches!')
+
+      // Short delay for final polish
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      setRefinementProgress(100)
+      setRefinementMessage('✨ Refinement completed beautifully!')
+
+      await new Promise(resolve => setTimeout(resolve, 800))
+
       onArtifactUpdated(data.artifact)
       setRefinementPrompt('')
     } catch (err: any) {
       console.error('Artifact refinement error:', err)
       setError(err.message || 'Failed to refine artifact')
+      setRefinementMessage('Oops! The refinement magic failed...')
     } finally {
+      clearInterval(progressInterval)
       setLoading(false)
+      setTimeout(() => {
+        setRefinementProgress(0)
+      }, 1000)
     }
   }
 
@@ -124,53 +197,35 @@ export default function ArtifactEditor({
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            onClick={handleRefine}
-            disabled={loading || !refinementPrompt.trim()}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Refining...
-              </>
-            ) : (
-              <>
+        <div className={loading ? "mb-16" : ""}>
+          {loading ? (
+            <SciFiLoading
+              isLoading={loading}
+              progress={refinementProgress}
+              message={refinementMessage}
+            />
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={handleRefine}
+                disabled={loading || !refinementPrompt.trim()}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Apply Changes
-              </>
-            )}
-          </button>
+              </button>
 
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors text-sm"
-          >
-            Cancel
-          </button>
+              <button
+                onClick={onCancel}
+                disabled={loading}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (
