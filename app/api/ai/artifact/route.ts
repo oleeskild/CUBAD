@@ -239,7 +239,8 @@ export async function POST(request: NextRequest) {
 
     const artifact: ArtifactDefinition = {
       id: artifactId,
-      name: parsedResponse.name,
+      // During refinement, keep the existing name to ensure proper versioning
+      name: existingArtifact ? existingArtifact.name : parsedResponse.name,
       description: parsedResponse.description,
       collectionContext: {
         accountName: context.accountName,
