@@ -14,6 +14,7 @@ Cubad is a developer-friendly UI for Azure Cosmos DB that doesn't suck. It provi
 - 🔍 **Fast Search** - Command palette (⌘K) for instant navigation
 - 📝 **Query Editor** - Monaco-powered SQL editor with autocomplete
 - 🤖 **AI Assistant** - Natural language to SQL query generation
+- 🎨 **AI Artifacts** - Generate custom React components to visualize your data
 - ⌨️ **Vim Navigation** - Keyboard shortcuts for everything (h/j/k/l)
 - 🎨 **Modern UI** - Clean interface with dark mode
 - 🔒 **Read-only Safe** - Uses read-only keys by default
@@ -69,10 +70,14 @@ Query editor suggests document properties from your actual data - no more guessi
 ### AI Query Assistant
 Describe what you want in plain English, get a ready-to-run SQL query. Optionally add a GDPR-safe (all values will be redacted, only structure and property names are kept) document schema for better results.
 
+### AI Artifacts
+Generate custom React components to visualize your Cosmos DB data. After running a query, click "Generate Artifact" and describe what you want to see - the AI will create interactive components like tables, cards, charts, and dashboards. Toggle between traditional JSON view and your custom artifact visualization.
+
 ### Vim-style Navigation
 - `h`/`l` - Navigate between panels
 - `j`/`k` - Navigate items in lists
 - `⌘↵` - Execute query
+- `⌘+Enter` - Generate artifact (when in artifact generator)
 
 ## Security
 
