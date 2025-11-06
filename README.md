@@ -53,6 +53,84 @@ npm run dev
 
 Open [http://localhost:9090](http://localhost:9090) and you're ready to go!
 
+### Docker Quick Start
+
+The app uses Azure's `DefaultAzureCredential` which supports multiple authentication methods. For Docker, you have several options:
+
+#### Option 1: Mount Azure CLI credentials (Easiest - Recommended)
+
+If you already have `az login` configured on your host machine, this is the simplest approach:
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd cubad
+
+# Build the image
+docker build -t cubad .
+
+# Run with mounted Azure CLI credentials
+docker run -d -p 9090:9090 \
+  --name cubad-app \
+  -v ~/.azure:/home/nextjs/.azure \
+  -e AZURE_CONFIG_DIR=/home/nextjs/.azure \
+  -e AZURE_SUBSCRIPTION_ID=your-subscription-id \
+  cubad
+
+# Or with Podman
+podman run -d -p 9090:9090 \
+  --name cubad-app \
+  -v ~/.azure:/home/nextjs/.azure \
+  -e AZURE_CONFIG_DIR=/home/nextjs/.azure \
+  -e AZURE_SUBSCRIPTION_ID=your-subscription-id \
+  cubad
+```
+
+#### Option 2: Environment Variables (Service Principal)
+
+Use this method if you don't have Azure CLI installed or prefer service principal authentication:
+
+```bash
+# Build the image (if not already built)
+docker build -t cubad .
+
+# Run with Azure service principal credentials
+docker run -d -p 9090:9090 \
+  --name cubad-app \
+  -e AZURE_CLIENT_ID=your-client-id \
+  -e AZURE_CLIENT_SECRET=your-client-secret \
+  -e AZURE_TENANT_ID=your-tenant-id \
+  -e AZURE_SUBSCRIPTION_ID=your-subscription-id \
+  cubad
+
+# Or with Podman
+podman run -d -p 9090:9090 \
+  --name cubad-app \
+  -e AZURE_CLIENT_ID=your-client-id \
+  -e AZURE_CLIENT_SECRET=your-client-secret \
+  -e AZURE_TENANT_ID=your-tenant-id \
+  -e AZURE_SUBSCRIPTION_ID=your-subscription-id \
+  cubad
+```
+
+#### Option 3: Azure Container Registry + Managed Identity
+For production deployments, use Azure Container Instances with Managed Identity:
+```bash
+# Build and push to ACR
+az acr build --registry your-acr --image cubad .
+
+# Deploy with managed identity
+az container create \
+  --resource-group your-rg \
+  --name cubad \
+  --image your-acr.azurecr.io/cubad \
+  --assign-identity [system] \
+  --ports 9090 \
+  --environment-variables AZURE_SUBSCRIPTION_ID=your-subscription-id
+```
+
+Open [http://localhost:9090](http://localhost:9090) and you're ready to go!
+
 ### First Time Setup
 
 1. **Build Search Index** - Click the button on the welcome screen to index your databases
