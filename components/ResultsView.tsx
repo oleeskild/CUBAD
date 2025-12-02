@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState } from 'react'
 import Editor from '@monaco-editor/react'
-import React from 'react'
 
 interface ResultsViewProps {
   results: any[] | null
@@ -14,10 +13,10 @@ interface ResultsViewProps {
   error: string | null
 }
 
-function ResultsView({ results, metadata, error }: ResultsViewProps) {
+export default function ResultsView({ results, metadata, error }: ResultsViewProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
 
-  const toggleItem = useCallback((index: number) => {
+  const toggleItem = (index: number) => {
     const newExpanded = new Set(expandedItems)
     if (newExpanded.has(index)) {
       newExpanded.delete(index)
@@ -25,139 +24,24 @@ function ResultsView({ results, metadata, error }: ResultsViewProps) {
       newExpanded.add(index)
     }
     setExpandedItems(newExpanded)
-  }, [expandedItems])
+  }
 
-  // Memoize formatted JSON to prevent re-formatting on every render
-  const formattedJSON = useMemo(() => {
-    const cache = new Map<number, string>()
-    return (item: any, index: number) => {
-      if (cache.has(index)) {
-        return cache.get(index)!
-      }
-      try {
-        const formatted = JSON.stringify(item, null, 2)
-        cache.set(index, formatted)
-        return formatted
-      } catch (error) {
-        console.error('Error formatting JSON:', error)
-        return JSON.stringify(item)
-      }
-    }
-  }, [])
-
-  const exportAsJSON = useCallback(() => {
+  const exportAsJSON = () => {
     if (!results) return
-    try {
-      const dataStr = JSON.stringify(results, null, 2)
-      const dataBlob = new Blob([dataStr], { type: 'application/json' })
-      const url = URL.createObjectURL(dataBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cosmos-query-results-${Date.now()}.json`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error exporting JSON:', error)
-    }
-  }, [results])
+    const dataStr = JSON.stringify(results, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cosmos-query-results-${Date.now()}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
-  const copyToClipboard = useCallback(() => {
+  const copyToClipboard = () => {
     if (!results) return
-    try {
-      navigator.clipboard.writeText(JSON.stringify(results, null, 2))
-    } catch (error) {
-      console.error('Error copying to clipboard:', error)
-    }
-  }, [results])
-
-  // Memoized DocumentItem to prevent unnecessary re-renders
-  const DocumentItem = React.memo(({ item, index, isExpanded, onToggle }: {
-    item: any
-    index: number
-    isExpanded: boolean
-    onToggle: () => void
-  }) => {
-    const [isLoading, setIsLoading] = useState(false)
-
-    const handleToggle = () => {
-      if (!isExpanded) {
-        setIsLoading(true)
-      }
-      onToggle()
-    }
-
-    const handleEditorDidMount = () => {
-      setIsLoading(false)
-    }
-
-    return (
-      <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900">
-        <button
-          onClick={handleToggle}
-          className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-gray-100"
-        >
-          <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
-            Document {index + 1}
-          </span>
-          <svg
-            className={`w-4 h-4 transition-transform ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-
-        {isExpanded && (
-          <div className="border-t border-gray-200 dark:border-gray-800">
-            {isLoading && (
-              <div className="flex items-center justify-center h-24 text-sm text-gray-500 dark:text-gray-400">
-                Loading editor...
-              </div>
-            )}
-            <Editor
-              height="400px"
-              defaultLanguage="json"
-              value={formattedJSON(item, index)}
-              theme="vs-dark"
-              onMount={handleEditorDidMount}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                fontSize: 12,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: false, // Disabled for better performance
-                wordWrap: 'off',
-                folding: true,
-                foldingHighlight: true,
-                showFoldingControls: 'always',
-                scrollbar: {
-                  vertical: 'auto',
-                  horizontal: 'auto',
-                },
-                find: {
-                  addExtraSpaceOnTop: false,
-                  autoFindInSelection: 'never',
-                  seedSearchStringFromSelection: 'never',
-                },
-              }}
-            />
-          </div>
-        )}
-      </div>
-    )
-  })
-
-  DocumentItem.displayName = 'DocumentItem'
+    navigator.clipboard.writeText(JSON.stringify(results, null, 2))
+  }
 
   if (error) {
     return (
@@ -247,13 +131,66 @@ function ResultsView({ results, metadata, error }: ResultsViewProps) {
         ) : (
           <div className="space-y-2">
             {results.map((item, index) => (
-              <DocumentItem
+              <div
                 key={index}
-                item={item}
-                index={index}
-                isExpanded={expandedItems.has(index)}
-                onToggle={() => toggleItem(index)}
-              />
+                className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
+              >
+                <button
+                  onClick={() => toggleItem(index)}
+                  className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-gray-100"
+                >
+                  <span className="text-sm font-mono text-gray-700 dark:text-gray-300">
+                    Document {index + 1}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      expandedItems.has(index) ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {expandedItems.has(index) && (
+                  <div className="border-t border-gray-200 dark:border-gray-800">
+                    <Editor
+                      height="400px"
+                      defaultLanguage="json"
+                      value={JSON.stringify(item, null, 2)}
+                      theme="vs-dark"
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        wordWrap: 'off',
+                        folding: true,
+                        foldingHighlight: true,
+                        showFoldingControls: 'always',
+                        scrollbar: {
+                          vertical: 'auto',
+                          horizontal: 'auto',
+                        },
+                        find: {
+                          addExtraSpaceOnTop: false,
+                          autoFindInSelection: 'never',
+                          seedSearchStringFromSelection: 'never',
+                        },
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -261,5 +198,3 @@ function ResultsView({ results, metadata, error }: ResultsViewProps) {
     </div>
   )
 }
-
-export default React.memo(ResultsView)
