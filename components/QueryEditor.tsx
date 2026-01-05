@@ -355,7 +355,7 @@ export default function QueryEditor({ onExecute, executing }: QueryEditorProps) 
           {/* </button> */}
           <button
             onClick={() => {
-              handleQueryChange('SELECT * FROM c\n\nOFFSET 0 LIMIT 100')
+              handleQueryChange('SELECT * FROM c\n\nORDER BY c._ts DESC\nOFFSET 0 LIMIT 100')
               // Set cursor position after clearing
               setTimeout(() => {
                 if (editorRef.current) {

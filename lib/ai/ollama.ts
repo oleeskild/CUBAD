@@ -1,5 +1,5 @@
 import { AIProvider, AIProviderConfig, AIQueryContext, AIAssistResponse } from '@/types/ai'
-import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt } from './provider'
+import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt, extractJSON } from './provider'
 
 export class OllamaProvider implements AIProvider {
   private endpoint: string
@@ -42,7 +42,7 @@ export class OllamaProvider implements AIProvider {
     }
 
     try {
-      const result = JSON.parse(content)
+      const result = JSON.parse(extractJSON(content))
       return {
         query: result.query,
         explanation: result.explanation,

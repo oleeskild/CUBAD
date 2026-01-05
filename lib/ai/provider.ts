@@ -4,6 +4,22 @@ import { OpenRouterProvider } from './openrouter'
 import { OllamaProvider } from './ollama'
 import { AzureOpenAIProvider } from './azure-openai'
 
+/**
+ * Extracts JSON from a string that may be wrapped in markdown code blocks.
+ * Handles ```json, ```, or raw JSON.
+ */
+export function extractJSON(text: string): string {
+  const trimmed = text.trim()
+
+  // Match ```json ... ``` or ``` ... ```
+  const codeBlockMatch = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i)
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim()
+  }
+
+  return trimmed
+}
+
 export function createAIProvider(config: AIProviderConfig): AIProvider {
   switch (config.type) {
     case 'anthropic':

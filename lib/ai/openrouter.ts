@@ -1,5 +1,5 @@
 import { AIProvider, AIProviderConfig, AIQueryContext, AIAssistResponse } from '@/types/ai'
-import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt } from './provider'
+import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt, extractJSON } from './provider'
 
 export class OpenRouterProvider implements AIProvider {
   private apiKey: string
@@ -50,7 +50,7 @@ export class OpenRouterProvider implements AIProvider {
     }
 
     try {
-      const result = JSON.parse(content)
+      const result = JSON.parse(extractJSON(content))
       return {
         query: result.query,
         explanation: result.explanation,

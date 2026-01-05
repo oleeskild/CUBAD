@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { AIProvider, AIProviderConfig, AIQueryContext, AIAssistResponse } from '@/types/ai'
-import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt } from './provider'
+import { buildSystemPrompt, buildQueryGenerationPrompt, buildQueryExplanationPrompt, extractJSON } from './provider'
 
 export class AnthropicProvider implements AIProvider {
   private client: Anthropic
@@ -39,7 +39,7 @@ export class AnthropicProvider implements AIProvider {
     }
 
     try {
-      const result = JSON.parse(content.text)
+      const result = JSON.parse(extractJSON(content.text))
       return {
         query: result.query,
         explanation: result.explanation,

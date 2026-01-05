@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GenerateArtifactRequest, GenerateArtifactResponse, ArtifactDefinition } from '@/types/ai'
-import { buildArtifactGenerationPrompt, buildArtifactRefinementPrompt } from '@/lib/ai/provider'
+import { buildArtifactGenerationPrompt, buildArtifactRefinementPrompt, extractJSON } from '@/lib/ai/provider'
 import Anthropic from '@anthropic-ai/sdk'
 
 export async function POST(request: NextRequest) {
@@ -198,23 +198,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      parsedResponse = JSON.parse(responseText)
+      parsedResponse = JSON.parse(extractJSON(responseText))
     } catch (parseError) {
-      // Try cleaning markdown code blocks
-      const cleanedResponse = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim()
-
-      try {
-        parsedResponse = JSON.parse(cleanedResponse)
-      } catch (secondParseError) {
-        console.error('Failed to parse AI response:', responseText)
-        return NextResponse.json(
-          { error: 'Failed to parse AI response. The AI may not have returned valid JSON.', details: responseText },
-          { status: 500 }
-        )
-      }
+      console.error('Failed to parse AI response:', responseText)
+      return NextResponse.json(
+        { error: 'Failed to parse AI response. The AI may not have returned valid JSON.', details: responseText },
+        { status: 500 }
+      )
     }
 
     // Validate that the component code uses the correct function name

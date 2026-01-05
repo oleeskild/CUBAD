@@ -63,7 +63,7 @@ export const useTabStore = create<TabStore>()(
       accountResourceGroup: context?.accountResourceGroup || null,
       databaseName: context?.databaseName || null,
       containerName: context?.containerName || null,
-      query: 'SELECT * FROM c\n\nOFFSET 0 LIMIT 100',
+      query: 'SELECT * FROM c\n\nORDER BY c._ts DESC\nOFFSET 0 LIMIT 100',
       results: null,
       metadata: null,
       error: null,
